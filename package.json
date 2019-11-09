@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/woyaohaohaoxuexi/blog-server/issues"
   },
-  "homepage": "https://github.com/woyaohaohaoxuexi/blog-server#readme"
+  "homepage": "https://github.com/woyaohaohaoxuexi/blog-server#readme",
+  "devDependencies": {
+    "mysql": "^2.17.1"
+  }
 }
