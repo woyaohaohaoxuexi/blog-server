@@ -3,8 +3,8 @@ const URL = require('url')
 const fs = require('fs')
 const mysql = require('mysql')
 let connection = mysql.createConnection({
-  host     : 'localhost',
-  user     : 'root',
+  host: 'localhost',
+  user: 'root',
   password : 'liu_1991',
   database : 'blog_db'
 })
@@ -33,10 +33,11 @@ http.createServer((req, res) => {
     res.write(JSON.stringify({success: true, code: 20000}))
     res.end();
   }
-  if (reqUrl.indexOf('/add/management') > -1) {
+  if (reqUrl.indexOf('/add/article') > -1) {
     const headerData = req.headers
     const boundary = headerData['content-type'].split('boundary=')[1]
-    const addSql = 'INSERT INTO management(id,title,introduction,management) VALUES(0,?,?,?)'
+    const addSql = 'INSERT INTO management(id,title,introduction,article,updateDate) VALUES(0,?,?,?,?)'
+    const currentDate = Date().now()
     const sordArr = ['title', 'introduction', 'management']
     let result = []
     req
@@ -60,6 +61,7 @@ http.createServer((req, res) => {
         sordArr.forEach(item => {
           setData.push(manageData[item])
         })
+        setData.push(currentDate)
         connection.query(addSql, setData, (err, result) => {
           if (err) {
             console.log('设置数据库数据失败：', err)
@@ -72,18 +74,48 @@ http.createServer((req, res) => {
     res.write(JSON.stringify({success: true, code: 20000}))
     res.end();
   }
-  if (reqUrl.indexOf('/get/management') > -1) {
-    const sql = 'SELECT * FROM management'
+  // 获取文章列表
+  if (reqUrl.indexOf('/get/article-list') > -1) {
+    const sql = 'SELECT id,title,introduction,updateDate FROM management'
     connection.query(sql,  (err, result) => {
       if(err){
         console.log('[SELECT ERROR] - ', err.message);
         return;
       }
       res.writeHead(200, { 'Content-type': 'application/json' });
-      res.write(JSON.stringify({success: true, code: 20000, data: result}))
+      res.write(JSON.stringify({
+        success: true,
+        code: 2000,
+        data: {
+          list: result,
+          page: { total: result.length }
+        }
+      }))
       res.end();
     });
   }
 
-}).listen(8090)
+  // 获取文章详情
+  if (reqUrl.indexOf('/get/article-detail') > -1) {
+    // console.log('获取文章详情：', req)
+    const queryStr = reqUrl.split('?')[1]
+    const queryData = new URLSearchParams(queryStr)
+    console.log('请求参数：', queryData)
+    const sql = `SELECT article,updateDate FROM management WHERE id = ${ queryData.get('articleId') }`
+    connection.query(sql,  (err, result) => {
+      if(err){
+        console.log('[SELECT ERROR] - ', err.message);
+        return;
+      }
+      res.writeHead(200, { 'Content-type': 'application/json' });
+      res.write(JSON.stringify({
+        success: true,
+        code: 2000,
+        data: result[0]
+      }))
+      res.end();
+    });
+  }
+
+}).listen(80)
 
