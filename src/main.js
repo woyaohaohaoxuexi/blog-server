@@ -12,6 +12,7 @@ connection.connect()
 http.createServer((req, res) => {
   const reqUrl = req.url
   res.setHeader("Access-Control-Allow-Origin", "*");  // 设置允许跨域
+  console.log('服务端获取到请求')
   if (reqUrl.indexOf('/upload') > -1) {
     const headerData = req.headers
     const boundary = headerData['content-type'].split('boundary=')[1]
@@ -77,6 +78,7 @@ http.createServer((req, res) => {
   // 获取文章列表
   if (reqUrl.indexOf('/get/article-list') > -1) {
     const sql = 'SELECT id,title,introduction,updateDate FROM management'
+    console.log('获取到请求')
     connection.query(sql,  (err, result) => {
       if(err){
         console.log('[SELECT ERROR] - ', err.message);
