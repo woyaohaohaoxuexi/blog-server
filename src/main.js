@@ -38,7 +38,7 @@ http.createServer((req, res) => {
     const headerData = req.headers
     const boundary = headerData['content-type'].split('boundary=')[1]
     const addSql = 'INSERT INTO blog_list(id,title,introduction,article,updateDate) VALUES(0,?,?,?,?)'
-    const currentDate = Date().now()
+    const currentDate = Date.now()
     const sordArr = ['title', 'introduction', 'article']
     let result = []
     req
