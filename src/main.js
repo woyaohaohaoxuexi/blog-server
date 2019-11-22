@@ -37,9 +37,9 @@ http.createServer((req, res) => {
   if (reqUrl.indexOf('/add/article') > -1) {
     const headerData = req.headers
     const boundary = headerData['content-type'].split('boundary=')[1]
-    const addSql = 'INSERT INTO management(id,title,introduction,article,updateDate) VALUES(0,?,?,?,?)'
+    const addSql = 'INSERT INTO blog_list(id,title,introduction,article,updateDate) VALUES(0,?,?,?,?)'
     const currentDate = Date().now()
-    const sordArr = ['title', 'introduction', 'management']
+    const sordArr = ['title', 'introduction', 'article']
     let result = []
     req
       .on('data', (chunk) => {
@@ -77,7 +77,7 @@ http.createServer((req, res) => {
   }
   // 获取文章列表
   if (reqUrl.indexOf('/get/article-list') > -1) {
-    const sql = 'SELECT id,title,introduction,updateDate FROM management'
+    const sql = 'SELECT id,title,introduction,updateDate FROM blog_list'
     console.log('获取到请求')
     connection.query(sql,  (err, result) => {
       if(err){
@@ -103,7 +103,7 @@ http.createServer((req, res) => {
     const queryStr = reqUrl.split('?')[1]
     const queryData = new URLSearchParams(queryStr)
     console.log('请求参数：', queryData)
-    const sql = `SELECT article,updateDate FROM management WHERE id = ${ queryData.get('articleId') }`
+    const sql = `SELECT article,updateDate FROM blog_list WHERE id = ${ queryData.get('articleId') }`
     connection.query(sql,  (err, result) => {
       if(err){
         console.log('[SELECT ERROR] - ', err.message);
