@@ -2,8 +2,9 @@ const http = require('http')
 const URL = require('url')
 const fs = require('fs')
 const mysql = require('mysql')
+const $date = require('./util/date')
 let connection = mysql.createConnection({
-  host: 'localhost',
+  host: '47.106.90.160',
   user: 'root',
   password : '$Liu294847013',
   database : 'blog_db'
@@ -62,7 +63,7 @@ http.createServer((req, res) => {
         sordArr.forEach(item => {
           setData.push(manageData[item])
         })
-        setData.push(currentDate)
+        setData.push($date.timestampToTime(currentDate, true))
         connection.query(addSql, setData, (err, result) => {
           if (err) {
             console.log('设置数据库数据失败：', err)
