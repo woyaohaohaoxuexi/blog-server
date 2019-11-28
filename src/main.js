@@ -3,13 +3,14 @@ const URL = require('url')
 const fs = require('fs')
 const mysql = require('mysql')
 const $date = require('./util/date')
-let connection = mysql.createConnection({
+const mysql_config = {
   host: '47.106.90.160',
   user: 'root',
   password : '$Liu294847013',
   database : 'blog_db'
-})
-connection.connect()
+}
+let connection = mysql.createPool(mysql_config)
+
 http.createServer((req, res) => {
   const reqUrl = req.url
   res.setHeader("Access-Control-Allow-Origin", "*");  // 设置允许跨域
@@ -79,7 +80,6 @@ http.createServer((req, res) => {
   // 获取文章列表
   if (reqUrl.indexOf('/get/article-list') > -1) {
     const sql = 'SELECT id,title,introduction,updateDate FROM blog_list'
-    console.log('获取到请求')
     connection.query(sql,  (err, result) => {
       if(err){
         console.log('[SELECT ERROR] - ', err.message);
@@ -100,10 +100,9 @@ http.createServer((req, res) => {
 
   // 获取文章详情
   if (reqUrl.indexOf('/get/article-detail') > -1) {
-    // console.log('获取文章详情：', req)
     const queryStr = reqUrl.split('?')[1]
     const queryData = new URLSearchParams(queryStr)
-    console.log('请求参数：', queryData)
+    console.log('请求参数：', queryData.get('articleId'))
     const sql = `SELECT article,updateDate FROM blog_list WHERE id = ${ queryData.get('articleId') }`
     connection.query(sql,  (err, result) => {
       if(err){
