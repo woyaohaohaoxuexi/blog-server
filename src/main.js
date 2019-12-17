@@ -3,6 +3,8 @@ const URL = require('url')
 const fs = require('fs')
 const mysql = require('mysql')
 const $date = require('./util/date')
+const querystring = require('querystring')
+
 const mysql_config = {
   host: '47.106.90.160',
   user: 'root',
@@ -14,11 +16,10 @@ let connection = mysql.createPool(mysql_config)
 http.createServer((req, res) => {
   const reqUrl = req.url
   res.setHeader("Access-Control-Allow-Origin", "*");  // 设置允许跨域
-  console.log('服务端获取到请求')
-  if (reqUrl.indexOf('/upload') > -1) {
+  // 上传 md 文件
+  if (reqUrl.indexOf('/upload/management') > -1) {
     const headerData = req.headers
     const boundary = headerData['content-type'].split('boundary=')[1]
-    console.log('边界为：', boundary)
     let result = []
     req
       .on('data', (chunk) => {
@@ -26,15 +27,70 @@ http.createServer((req, res) => {
       })
       .on('end', () => {
         result = Buffer.concat(result).toString()
-        console.log('结果：', result.indexOf(boundary))
         let tempData = result.split(`--${boundary}`)[1]
         const uploadStr = tempData.split('\r\n\r\n')[1]
-        console.log('切割后的数据为：', uploadStr)
-        
       })
     res.writeHead(200, { 'Content-type': 'application/json' });
     res.write(JSON.stringify({success: true, code: 20000}))
     res.end();
+  }
+
+  // 上传图片
+  if (reqUrl.includes('/upload/image')) {
+    const boundary = req.headers['content-type'].split('boundary=')[1]
+    let tempStr = ''
+    // 设置编码方式
+    req.setEncoding('binary')
+    // const destinationFile = fs.createWriteStream('temp.png')
+    req
+      .on('data', chunk => {
+        tempStr += chunk
+        // destinationFile.write(chunk)
+      })
+      .on('end', () => {
+        // req.pipe(destinationFile)
+        // 解析为 对象数据
+        const file = querystring.parse(tempStr, '\r\n', ':')
+        // 获取文件名称
+        let fileName = ''
+        for (let f in file) {
+          if (f === 'Content-Disposition') {
+            let tempData = file[f].split('; ')
+            tempData.some(item => {
+              if (item.includes('filename')) {
+                fileName = /^filename="(.{1,})"$/.exec(item)[1]
+                return true
+              }
+            })
+          }
+        }
+        const entireData = tempStr.toString()
+        const contentType = file['Content-Type'].substring(1)
+        // 获取文件二进制数据开始位置
+        const upperBoundary = entireData.indexOf(contentType) + contentType.length
+        const shorterData = entireData.substring(upperBoundary)
+
+        // 替换开始位置的空格
+        const binaryDataAlmost = shorterData.replace(/^\s\s*/, '').replace(/\s\s*$/, '')
+
+        // 去除数据末尾的额外数据， "--" + boundary + "--"
+        const binaryData = binaryDataAlmost.substring(0,
+          binaryDataAlmost.indexOf("--" + boundary + "--")
+        )
+        const buferData = new Buffer.from(binaryData, 'binary')
+        const imgPath = `/var/www/assets/image/${fileName}`
+        fs.writeFile(imgPath, buferData, err => {
+          if (err) {
+            console.log('写入错误：', err)
+            return 
+          }
+          console.log('写入成功')
+          res.writeHead(200, { 'Content-type': 'application/json' });
+          res.write(JSON.stringify({success: true, code: 20000, path: `image/${fileName}`}))
+          res.end();
+        })
+      })
+
   }
   if (reqUrl.indexOf('/add/article') > -1) {
     const headerData = req.headers
