@@ -1,179 +1,177 @@
 const http = require('http')
-const URL = require('url')
+const url = require('url')
 const fs = require('fs')
-const mysql = require('mysql')
 const $date = require('./util/date')
 const querystring = require('querystring')
+const connection = require('./util/mysql')
+const parseFile = require('./util/parseFile')
+const parseImg = require('./util/parseImg')
+const handlerResponse = require('./util/response')
 
-const mysql_config = {
-  host: '47.106.90.160',
-  user: 'root',
-  password : '$Liu294847013',
-  database : 'blog_db'
-}
-let connection = mysql.createPool(mysql_config)
 
 http.createServer((req, res) => {
+  // 设置允许跨域
+  res.setHeader("Access-Control-Allow-Origin", "*");
   const reqUrl = req.url
-  res.setHeader("Access-Control-Allow-Origin", "*");  // 设置允许跨域
-  // 上传 md 文件
-  if (reqUrl.indexOf('/upload/management') > -1) {
-    const headerData = req.headers
-    const boundary = headerData['content-type'].split('boundary=')[1]
-    let result = []
-    req
-      .on('data', (chunk) => {
-        result.push(chunk)
-      })
-      .on('end', () => {
-        result = Buffer.concat(result).toString()
-        let tempData = result.split(`--${boundary}`)[1]
-        const uploadStr = tempData.split('\r\n\r\n')[1]
-      })
-    res.writeHead(200, { 'Content-type': 'application/json' });
-    res.write(JSON.stringify({success: true, code: 20000}))
-    res.end();
+  const headerData = req.headers
+  const contentType = headerData['content-type']
+  let typeReg = /^multipart\/form-data/
+  let boundaryReg = /^.*\bboundary=(.*)/
+  // 如果请求头的 content-type 为上传类型 （multipart/form-data ）就获取 boundary
+  if (typeReg.test(contentType)) {
+    boundary = boundaryReg.exec(contentType)[1]
   }
-
-  // 上传图片
-  if (reqUrl.includes('/upload/image')) {
-    const boundary = req.headers['content-type'].split('boundary=')[1]
-    let tempStr = ''
-    // 设置编码方式
-    req.setEncoding('binary')
-    // const destinationFile = fs.createWriteStream('temp.png')
-    req
-      .on('data', chunk => {
-        tempStr += chunk
-        // destinationFile.write(chunk)
-      })
-      .on('end', () => {
-        // req.pipe(destinationFile)
-        // 解析为 对象数据
-        const file = querystring.parse(tempStr, '\r\n', ':')
-        // 获取文件名称
-        let fileName = ''
-        for (let f in file) {
-          if (f === 'Content-Disposition') {
-            let tempData = file[f].split('; ')
-            tempData.some(item => {
-              if (item.includes('filename')) {
-                fileName = /^filename="(.{1,})"$/.exec(item)[1]
-                return true
-              }
-            })
-          }
-        }
-        const entireData = tempStr.toString()
-        const contentType = file['Content-Type'].substring(1)
-        // 获取文件二进制数据开始位置
-        const upperBoundary = entireData.indexOf(contentType) + contentType.length
-        const shorterData = entireData.substring(upperBoundary)
-
-        // 替换开始位置的空格
-        const binaryDataAlmost = shorterData.replace(/^\s\s*/, '').replace(/\s\s*$/, '')
-
-        // 去除数据末尾的额外数据， "--" + boundary + "--"
-        const binaryData = binaryDataAlmost.substring(0,
-          binaryDataAlmost.indexOf("--" + boundary + "--")
-        )
-        const buferData = new Buffer.from(binaryData, 'binary')
-        const imgPath = `/var/www/assets/image/${fileName}`
-        fs.writeFile(imgPath, buferData, err => {
-          if (err) {
-            console.log('写入错误：', err)
-            return 
-          }
-          console.log('写入成功')
-          res.writeHead(200, { 'Content-type': 'application/json' });
-          res.write(JSON.stringify({success: true, code: 20000, path: `image/${fileName}`}))
-          res.end();
-        })
-      })
-
-  }
-  if (reqUrl.indexOf('/add/article') > -1) {
-    const headerData = req.headers
-    const boundary = headerData['content-type'].split('boundary=')[1]
+  // 添加文章
+  if (/^\/ley\/add\/article/.test(reqUrl)) {
     const addSql = 'INSERT INTO blog_list(id,title,introduction,article,updateDate) VALUES(0,?,?,?,?)'
     const currentDate = Date.now()
     const sordArr = ['title', 'introduction', 'article']
-    let result = []
+    let result = ''
+    let resStatus
+    let resInfo
+    req.setEncoding('utf8')
     req
       .on('data', (chunk) => {
-        result.push(chunk)
+        result += chunk
       })
       .on('end', () => {
-        result = Buffer.concat(result).toString()
-        let splitData = result.split(`--${boundary}`)
-        let manageData = {}
         let setData = []
-        const keyReg = /\bname="(\w+)"/
-        splitData.pop()
-        splitData.shift()
-        splitData.forEach(item => {
-          let arr = item.split('\r\n\r\n')
-          let name = keyReg.exec(arr[0])[1]
-          let value = arr[1].replace('\r\n', '')
-          manageData[name] = value
-        })
+        let requestData = parseFile(result, boundary)
+
         sordArr.forEach(item => {
-          setData.push(manageData[item])
+          setData.push(requestData[item])
         })
         setData.push($date.timestampToTime(currentDate, true))
         connection.query(addSql, setData, (err, result) => {
           if (err) {
-            console.log('设置数据库数据失败：', err)
-            return;
+            resStatus = 400
+            resInfo = err
+          } else {
+            resStatus = 200
+            console.log('添加文章成功：', $date.timestampToTime(new Date(), true))
           }
-          console.log('设置数据结果为：', result)
+          const resData = handlerResponse(resStatus, resInfo)
+          res.writeHead(resStatus, resData.headeData);
+          res.end(resData.bodyData);
         })
       })
-    res.writeHead(200, { 'Content-type': 'application/json; charset=utf-8' });
-    res.write(JSON.stringify({success: true, code: 20000}))
-    res.end();
   }
+
+  // 上传图片
+  if (/^\/ley\/upload\/image/.test(reqUrl)) {
+    let tempStr = ''
+    let status
+    let resInfo
+    // 设置编码方式
+    req.setEncoding('binary')
+    req
+      .on('data', chunk => {
+        tempStr += chunk
+      })
+      .on('end', () => {
+        const fileData = parseImg(tempStr, boundary)
+        const { fileName, fileStr } = fileData
+        const bufferData = Buffer.from(fileStr, 'binary')
+        const imgPath = `/var/www/assets/image/${fileName}`
+        fs.writeFile(imgPath, bufferData, err => {
+          if (err) {
+            status = 400
+            resInfo = err.message
+          } else {
+            status = 200
+            resInfo = {
+              path: `image/${fileName}`
+            }
+          }
+          console.log('上传图片：')
+          const responseData = handlerResponse(status, resInfo)
+          res.writeHead(status, responseData.headeData);
+          res.end(responseData.bodyData);
+        })
+        // tempStr 数据 图片数据
+        // ------WebKitFormBoundaryCAl5a45FLDXq56mw
+        // Content-Disposition: form-data; name="file"; filename="right.png"
+        // Content-Type: image/png
+
+        // PNG
+
+        // IHDR 
+        // ÅM  ÿ4sRGB®ÎéIDATH
+        // ¥©ûÅnÛ¸1©'Ò
+        // ±Û^Å½GqãÂÎ$JðÕ $Mf(Ã¼|$þEQÔô»Øns²-Tê7UU]9íÐ
+        // nvíû¾)Ëò©Ýy\(L
+        //               p=á`îMù+Ë²æSWÔÍ,ñ!Åh[a¢Ê·?;5°ôpg?«¿Û84M[¬öeöYµ$UÐÌPT³[rIL'
+        //                                                                         È 0     g
+        // ä­8ÂÛt%Cà· G(¹ì<,àùæ§¯£0lö³|ãS¾7ðeÁ*ràãÌN96ÄÜ%-ä¾h#G.,0B¾üiHvèó»IEND®B`
+        // ------WebKitFormBoundaryCAl5a45FLDXq56mw--
+      })
+  }
+
   // 获取文章列表
-  if (reqUrl.indexOf('/get/article-list') > -1) {
+  if (/^\/ley\/get\/article-list/.test(reqUrl)) {
     const sql = 'SELECT id,title,introduction,updateDate FROM blog_list'
-    connection.query(sql,  (err, result) => {
-      if(err){
+    let status
+    let resInfo
+    connection.query(sql, (err, result) => {
+      if (err) {
         console.log('[SELECT ERROR] - ', err.message);
-        return;
-      }
-      res.writeHead(200, { 'Content-type': 'application/json' });
-      res.write(JSON.stringify({
-        success: true,
-        code: 2000,
-        data: {
+        status = 400
+        resInfo = err.message
+      } else {
+        status = 200
+        resInfo = {
           list: result,
           page: { total: result.length }
         }
-      }))
-      res.end();
+      }
+      const responseData = handlerResponse(status, resInfo)
+      res.writeHead(status, responseData.headeData);
+      res.end(responseData.bodyData);
     });
   }
 
   // 获取文章详情
-  if (reqUrl.indexOf('/get/article-detail') > -1) {
-    const queryStr = reqUrl.split('?')[1]
+  if (/^\/ley\/get\/article-detail/.test(reqUrl)) {
+    const queryStr = url.parse(reqUrl).query
     const queryData = new URLSearchParams(queryStr)
-    console.log('请求参数：', queryData.get('articleId'))
-    const sql = `SELECT article,updateDate FROM blog_list WHERE id = ${ queryData.get('articleId') }`
+    const sql = `SELECT article,updateDate FROM blog_list WHERE id = ${queryData.get('articleId')}`
+    let status
+    let resInfo
     connection.query(sql,  (err, result) => {
-      if(err){
+      if (err) {
         console.log('[SELECT ERROR] - ', err.message);
-        return;
+        status = 400
+        resInfo = err.message
+      } else {
+        status = 200
+        resInfo = result[0]
       }
-      res.writeHead(200, { 'Content-type': 'application/json' });
-      res.write(JSON.stringify({
-        success: true,
-        code: 2000,
-        data: result[0]
-      }))
-      res.end();
+      const responseData = handlerResponse(status, resInfo)
+
+      res.writeHead(status, responseData.headeData);
+      res.end(responseData.bodyData);
     });
   }
 
-}).listen(8090)
+  // 删除文章
+  if (/^\/ley\/delete\/article/.test(reqUrl)) {
+    console.log('删除解耦：', reqUrl)
+    const queryStr = url.parse(reqUrl).query
+    const delId = new URLSearchParams(queryStr).get('id')
+    const sql = `DELETE FROM blog_list WHERE id = ${delId}`
+    let status
+    let resInfo
+    connection.query(sql, (err, result) => {
+      if (err) {
+        status = 400
+        resInfo = err.message
+      } else {
+        status = 200
+      }
+      const responseData = handlerResponse(status, resInfo)
+      res.writeHead(status, responseData.headeData)
+      res.end(responseData.bodyData)
+    })
+  }
 
+}).listen(8090)
