@@ -2,9 +2,10 @@
   "name": "blog-server",
   "version": "1.0.0",
   "description": "博客 Node 后台",
-  "main": "index.js",
+  "private": true,
   "scripts": {
-    "start": "node src/main.js"
+    "start": "node src/main.js",
+    "build": "webpack"
   },
   "repository": {
     "type": "git",
@@ -18,6 +19,8 @@
   },
   "homepage": "https://github.com/woyaohaohaoxuexi/blog-server#readme",
   "devDependencies": {
-    "mysql": "^2.17.1"
+    "mysql": "^2.17.1",
+    "webpack": "^4.42.1",
+    "webpack-cli": "^3.3.11"
   }
 }
