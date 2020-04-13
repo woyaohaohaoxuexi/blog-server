@@ -2,7 +2,7 @@
   "name": "blog-server",
   "version": "1.0.0",
   "description": "博客 Node 后台",
-  "main": "index.js",
+  "private": true,
   "scripts": {
     "dev": "cross-env NODE_ENV=development pm2 start src/main.js",
     "prod": "cross-env NODE_ENV=production pm2 start src/main.js"
