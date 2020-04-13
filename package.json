@@ -4,7 +4,8 @@
   "description": "博客 Node 后台",
   "main": "index.js",
   "scripts": {
-    "start": "node src/main.js"
+    "dev": "cross-env NODE_ENV=development pm2 start src/main.js",
+    "prod": "cross-env NODE_ENV=production pm2 start src/main.js"
   },
   "repository": {
     "type": "git",
@@ -18,6 +19,7 @@
   },
   "homepage": "https://github.com/woyaohaohaoxuexi/blog-server#readme",
   "devDependencies": {
+    "cross-env": "^7.0.2",
     "mysql": "^2.17.1"
   }
 }

@@ -23,7 +23,7 @@ http.createServer((req, res) => {
   }
   // 添加文章
   if (/^\/ley\/add\/article/.test(reqUrl)) {
-    const addSql = 'INSERT INTO blog_list(id,title,introduction,article,updateDate) VALUES(0,?,?,?,?)'
+    const addSql = 'INSERT INTO blog_list(title,introduction,article,updateDate) VALUES(?,?,?,?)'
     const currentDate = Date.now()
     const sordArr = ['title', 'introduction', 'article']
     let result = ''
