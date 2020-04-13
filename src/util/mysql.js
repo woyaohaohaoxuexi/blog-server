@@ -13,7 +13,7 @@ const mysqlConfig = {
   host,
   user: 'root',
   password,
-  database : 'blog_db'
+  database : 'blog'
 }
 
 module.exports = mysql.createPool(mysqlConfig)
