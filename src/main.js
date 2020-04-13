@@ -8,7 +8,7 @@ const parseFile = require('./util/parseFile')
 const parseImg = require('./util/parseImg')
 const handlerResponse = require('./util/response')
 
-console.log('server 服务重启测试===')
+console.log('server 服务重启测试==')
 http.createServer((req, res) => {
   // 设置允许跨域
   res.setHeader("Access-Control-Allow-Origin", "*");
