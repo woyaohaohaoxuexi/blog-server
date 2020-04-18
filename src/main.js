@@ -7,6 +7,7 @@ const connection = require('./util/mysql')
 const parseFile = require('./util/parseFile')
 const parseImg = require('./util/parseImg')
 const handlerResponse = require('./util/response')
+console.log('server重启');
 
 http.createServer((req, res) => {
   // 设置允许跨域
