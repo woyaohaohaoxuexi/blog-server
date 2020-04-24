@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "dev": "cross-env NODE_ENV=development pm2 start src/main.js",
-    "prod": "cross-env NODE_ENV=production pm2 restart 1"
+    "prod": "cross-env NODE_ENV=production pm2 restart 1",
+    "home": "cross-env NODE_ENV=production pm2 start src/main.js"
   },
   "repository": {
     "type": "git",
