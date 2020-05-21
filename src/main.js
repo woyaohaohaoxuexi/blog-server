@@ -7,11 +7,12 @@ const connection = require('./util/mysql')
 const parseFile = require('./util/parseFile')
 const parseImg = require('./util/parseImg')
 const handlerResponse = require('./util/response')
-console.log('server重启 ===>');
+
 
 http.createServer((req, res) => {
   // 设置允许跨域
   res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   const reqUrl = req.url
   const headerData = req.headers
   const contentType = headerData['content-type']
@@ -170,6 +171,47 @@ http.createServer((req, res) => {
       const responseData = handlerResponse(status, resInfo)
       res.writeHead(status, responseData.headeData)
       res.end(responseData.bodyData)
+    })
+  }
+
+  // 添加标签
+  if (/^\/ley\/add\/label/.test(reqUrl)) {
+    let result = ''
+    let resStatus
+    let resInfo
+    req
+    .on('data', data => {
+      result += data
+      // result.push(data)
+    })
+    .on('end', () => {
+      // result = Buffer.concat(result).toString()
+      // result = decodeURI(result)
+      // console.log('data 类型', typeof result);
+      
+      console.log('decode 解析：', result, typeof result);
+      // const reqData = JSON.parse(result)
+      // const reqData = querystring.parse(result)
+      // const tempData = result.toJSON()
+      // console.log('解析：', tempData, typeof tempData);
+      // console.log('解析后：', reqData, typeof reqData);
+      
+      // const reqData = JSON.parse(JSON.stringify(result))
+      const addSql = 'INSERT INTO label_list(name) VALUES(?)'
+      // console.log('标签对象：', reqData);
+      
+      connection.query(addSql, ['CSS'], (err, result) => {
+        if (err) {
+          resStatus = 400
+          resInfo = err
+        } else {
+          resStatus = 200
+          resInfo = result
+        }
+        const responseData = handlerResponse(resStatus, resInfo)
+        res.writeHead(resStatus, responseData.headeData)
+        res.end(responseData.bodyData)
+      })   
     })
   }
 
