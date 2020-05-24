@@ -8,16 +8,22 @@ const parseFile = require('./util/parseFile')
 const parseImg = require('./util/parseImg')
 const handlerResponse = require('./util/response')
 
-
 http.createServer((req, res) => {
   // 设置允许跨域
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Origin", "*"); // 允许跨域
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Content-Length, Authorization, Accept, X-Requested-With , yourHeaderFeild"); // 
+  res.setHeader("Access-Control-Allow-Methods","PUT,POST,GET,DELETE,OPTIONS");
   const reqUrl = req.url
   const headerData = req.headers
   const contentType = headerData['content-type']
   let typeReg = /^multipart\/form-data/
   let boundaryReg = /^.*\bboundary=(.*)/
+  
+  // 让 options 请求快速返回
+  if (req.method === 'OPTIONS') {
+    res.end()
+    return
+  }
   // 如果请求头的 content-type 为上传类型 （multipart/form-data ）就获取 boundary
   if (typeReg.test(contentType)) {
     boundary = boundaryReg.exec(contentType)[1]
@@ -176,31 +182,23 @@ http.createServer((req, res) => {
 
   // 添加标签
   if (/^\/ley\/add\/label/.test(reqUrl)) {
-    let result = ''
+    let result = []
     let resStatus
     let resInfo
     req
     .on('data', data => {
-      result += data
-      // result.push(data)
+      result.push(data)
     })
     .on('end', () => {
-      // result = Buffer.concat(result).toString()
-      // result = decodeURI(result)
-      // console.log('data 类型', typeof result);
-      
-      console.log('decode 解析：', result, typeof result);
-      // const reqData = JSON.parse(result)
-      // const reqData = querystring.parse(result)
-      // const tempData = result.toJSON()
-      // console.log('解析：', tempData, typeof tempData);
-      // console.log('解析后：', reqData, typeof reqData);
-      
-      // const reqData = JSON.parse(JSON.stringify(result))
+      let requestBody = Buffer.concat(result).toString()
+      try {
+        requestBody = JSON.parse(requestBody)
+      } catch (error) {
+        console.log('添加标签接口报错：', error);
+      }
       const addSql = 'INSERT INTO label_list(name) VALUES(?)'
-      // console.log('标签对象：', reqData);
       
-      connection.query(addSql, ['CSS'], (err, result) => {
+      connection.query(addSql, [requestBody.name], (err, result) => {
         if (err) {
           resStatus = 400
           resInfo = err
