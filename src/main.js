@@ -78,7 +78,9 @@ http.createServer((req, res) => {
         const fileData = parseImg(tempStr, boundary)
         const { imgName, fileStr } = fileData
         const bufferData = Buffer.from(fileStr, 'binary')
-        const imgPath = `/home/iblog/imageg/${imgName}`
+        const imgPath = `/home/iblog/images/${imgName}`
+        // const imgPath = `src/images/${imgName}`
+        // console.log('
         fs.writeFile(imgPath, bufferData, err => {
           if (err) {
             status = 400
