@@ -76,9 +76,9 @@ http.createServer((req, res) => {
       })
       .on('end', () => {
         const fileData = parseImg(tempStr, boundary)
-        const { fileName, fileStr } = fileData
+        const { imgName, fileStr } = fileData
         const bufferData = Buffer.from(fileStr, 'binary')
-        const imgPath = `/var/www/assets/image/${fileName}`
+        const imgPath = `/home/iblog/imageg/${imgName}`
         fs.writeFile(imgPath, bufferData, err => {
           if (err) {
             status = 400
@@ -86,7 +86,7 @@ http.createServer((req, res) => {
           } else {
             status = 200
             resInfo = {
-              path: `image/${fileName}`
+              path: `image/${imgName}`
             }
           }
           console.log('上传图片：')
