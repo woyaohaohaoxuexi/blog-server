@@ -28,6 +28,24 @@ http.createServer((req, res) => {
   if (typeReg.test(contentType)) {
     boundary = boundaryReg.exec(contentType)[1]
   }
+  // 注册用户
+  if (/^\/ley\/user\/register/.test(reqUrl)) {
+    const addSql = 'INSERT INTO user_dg(name,password,createDate) VALUES(?,?,?)'
+    const currentDate = Date.now()
+    let result = ''
+    let resStatus
+    let resInfo
+    req.setEncoding('utf8')
+    req
+      .on('date', chunk => {
+        result += chunk
+      })
+      .on('end', () => {
+        console.log('result', result)
+        console.log('类型 ', typeof result)
+        res.end()
+      })
+  }
   // 添加文章
   if (/^\/ley\/add\/article/.test(reqUrl)) {
     const addSql = 'INSERT INTO blog_list(title,introduction,article,updateDate) VALUES(?,?,?,?)'
