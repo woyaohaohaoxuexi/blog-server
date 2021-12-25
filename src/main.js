@@ -29,6 +29,60 @@ http.createServer((req, res) => {
   if (typeReg.test(contentType)) {
     boundary = boundaryReg.exec(contentType)[1]
   }
+  // 注册用户
+  if (/^\/ley\/user\/register/.test(reqUrl)) {
+    const querySql = 'SELECT name FROM user_db'
+    const addSql = 'INSERT INTO user_db(name,password,createDate) VALUES(?,?,?)'
+    const currentDate = $date.timestampToTime(Date.now(), true)
+    let currentNames
+    let reqResult = ''
+    let resStatus
+    let resInfo
+    // req.setEncoding('utf8')
+    
+    req
+      .on('data', chunk => {
+        console.log('接受参数', chunk)
+        reqResult += chunk
+      })
+      .on('end', () => {
+        reqResult = JSON.parse(reqResult)
+        const { name, password } = reqResult
+        connection.query(querySql, (err, result) => {
+          if (err) {
+            console.log('查询当前拥有的用户', err)
+            resStatus = 400
+            resInfo = err.message
+          } else {
+            console.log('查询当前拥有的用户结果', result)
+            console.log('拥有用户', typeof result)
+            currentNames = result
+            if (currentNames.some(item => item.name === name)) {
+              resStatus = 400
+              resInfo = '该用户已注册，请登陆'
+            } else {
+              connection.query(addSql, [name, password, currentDate], (err, addResult) => {
+                if (err) {
+                  resStatus = 400
+                  resInfo = err.message
+                } else {
+                  resStatus = 200
+                  resInfo = '注册成功'
+                }
+                console.log('是否注册成功', resStatus)
+                const responseData = handlerResponse(resStatus, resInfo)
+                res.writeHead(resStatus, responseData.headeData);
+                res.end(responseData.bodyData);
+              })
+              return
+            }
+          }
+          const responseData = handlerResponse(resStatus, resInfo)
+          res.writeHead(resStatus, responseData.headeData);
+          res.end(responseData.bodyData);
+        })
+      })
+  }
   // 添加文章
   if (/^\/ley\/add\/article/.test(reqUrl)) {
     const addSql = 'INSERT INTO blog_list(title,introduction,article,updateDate) VALUES(?,?,?,?)'
