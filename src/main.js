@@ -18,6 +18,7 @@ http.createServer((req, res) => {
   const contentType = headerData['content-type']
   let typeReg = /^multipart\/form-data/
   let boundaryReg = /^.*\bboundary=(.*)/
+  console.log('获取到请求', req.url, req.method);
   
   // 让 options 请求快速返回
   if (req.method === 'OPTIONS') {
